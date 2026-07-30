@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin - C_Cartel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+  body { background: #0a0a0a; color: #fff; padding: 20px; max-width: 800px; margin: 0 auto; }
+  h1 { margin-bottom: 20px; color: #D4AF37; }
+  h2 { margin-top: 30px; margin-bottom: 15px; }
+  form { background: #111; padding: 20px; border-radius: 12px; border: 1px solid #222; margin-bottom: 30px; }
+  input, select, textarea { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37; }
+  button { width: 100%; padding: 12px; background: #D4AF37; color: #000; font-weight: bold; cursor: pointer; border: none; border-radius: 8px; transition: opacity 0.2s; }
+  button:hover:not(:disabled) { opacity: 0.9; }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  .alert { padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+  .alert.success { background: rgba(76, 175, 80, 0.1); color: #4CAF50; border: 1px solid #4CAF50; }
+  .alert.error { background: rgba(244, 67, 54, 0.1); color: #F44336; border: 1px solid #F44336; }
+  
+  .product-list { display: grid; gap: 10px; }
+  .item { background: #111; padding: 12px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #222; }
+  .item span { flex: 1; }
+  .del-btn { background: #F44336; color: #fff; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.85rem; width: auto; }
+  .del-btn:hover { opacity: 0.9; }
+  .back-link { color: #D4AF37; text-decoration: none; font-size: 0.95rem; }
+  .back-link:hover { text-decoration: underline; }
+  
+  .loading-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #D4AF37; border-radius: 50%; border-top: 2px solid transparent; animation: spin 0.6s linear infinite; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  
+  .file-input-wrapper { position: relative; }
+  .file-name { font-size: 0.85rem; color: #aaa; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<a href="/" class="back-link">← Back to site</a>
+<h1>Admin Dashboard</h1>
+
+<div id="alertContainer"></div>
+
+<h2>Add New Bag</h2>
+<form id="uploadForm">
+  <input 
+    type="text" 
+    id="name" 
+    placeholder="Bag Name (e.g., 'Classic Leather Tote')" 
+    required
+    minlength="2"
+  >
+  
+  <input 
+    type="number" 
+    id="price" 
+    placeholder="Price in Naira (e.g., 120000)" 
+    required
+    min="1000"
+  >
+  
+  <select id="category" required>
+    <option value="">Select Category</option>
+    <option value="Totes">Totes</option>
+    <option value="Crossbody">Crossbody</option>
+    <option value="Clutches">Clutches</option>
+    <option value="Backpacks">Backpacks</option>
+  </select>
+  
+  <div class="file-input-wrapper">
+    <input 
+      type="file" 
+      id="image" 
+      accept="image/*" 
+      required
+    >
+    <div class="file-name" id="fileName"></div>
+  </div>
+  
+  <input 
+    type="text" 
+    id="badge" 
+    placeholder="Badge (e.g., 'NEW', 'SOLD OUT') - Optional"
+    maxlength="20"
+  >
+  
+  <button type="submit" id="submitBtn">Upload Bag</button>
+</form>
+
+<h2>Current Products</h2>
+<div class="product-list" id="productList">
+  <p style="text-align: center; color: #aaa;">Loading...</p>
+</div>
+
+<script>
+  // Use environment variables (set in Netlify dashboard)
+  const SUPABASE_URL = 'https://acedquitkeerhzoaktku.supabase.co'
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZWRxdWl0a2Vlcmh6b2FrdGt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNDQwNTQsImV4cCI6MjEwMDkyMDA1NH0.BSH6QPFqdGyZc0WzG1vlU4P1pwdP7i-lzGYObuOPskk'
+  
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+  // Alert system
+  function showAlert(message, type = 'error') {
+    const container = document.getElementById('alertContainer')
+    const alert = document.createElement('div')
+    alert.className = `alert ${type}`
+    alert.textContent = message
+    container.appendChild(alert)
+    
+    setTimeout(() => alert.remove(), 5000)
+  }
+
+  // File input handler
+  document.getElementById('image').addEventListener('change', (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      document.getElementById('fileName').textContent = `Selected: ${file.name}`
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert('File too large! Maximum size is 5MB', 'error')
+        e.target.value = ''
+        document.getElementById('fileName').textContent = ''
+      }
+    }
+  })
+
+  // Form submission
+  document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    
+    const submitBtn = document.getElementById('submitBtn')
+    const originalText = submitBtn.textContent
+    
+    try {
+      // Get form values
+      const name = document.getElementById('name').value.trim()
+      const price = parseInt(document.getElementById('price').value)
+      const category = document.getElementById('category').value
+      const badge = document.getElementById('badge').value.trim()
+      const file = document.getElementById('image').files[0]
+
+      // Validate inputs
+      if (!file) {
+        showAlert('Please select an image', 'error')
+        return
+      }
+
+      if (name.length < 2) {
+        showAlert('Bag name must be at least 2 characters', 'error')
+        return
+      }
+
+      if (price < 1000) {
+        showAlert('Price must be at least ₦1,000', 'error')
+        return
+      }
+
+      // Show loading state
+      submitBtn.disabled = true
+      submitBtn.innerHTML = '<span class="loading-spinner"></span>Uploading...'
+
+      // Step 1: Upload image to storage
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.name.replace(/\s/g, '-')}`
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(fileName, file)
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}. Check that the 'products' storage bucket exists and is public.`)
+      }
+
+      // Step 2: Get public URL
+      const { data: urlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(fileName)
+
+      if (!urlData || !urlData.publicUrl) {
+        throw new Error('Failed to get image URL')
+      }
+
+      // Step 3: Insert into database
+      const { error: insertError } = await supabase.from('Products').insert([
+        {
+          name,
+          price,
+          category,
+          image_url: urlData.publicUrl,
+          badge: badge || null
+        }
+      ])
+
+      if (insertError) {
+        throw new Error(`Database error: ${insertError.message}. Check that the 'Products' table exists with columns: name, price, category, image_url, badge.`)
+      }
+
+      showAlert('✓ Bag uploaded successfully!', 'success')
+      e.target.reset()
+      document.getElementById('fileName').textContent = ''
+      
+      // Reload products
+      await loadProducts()
+
+    } catch (error) {
+      console.error('Error:', error)
+      showAlert(error.message, 'error')
+    } finally {
+      submitBtn.disabled = false
+      submitBtn.textContent = originalText
+    }
+  })
+
+  // Load and display products
+  async function loadProducts() {
+    try {
+      const { data, error } = await supabase
+        .from('Products')
+        .select('id, name, price, image_url, created_at')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        throw new Error(`Failed to load products: ${error.message}`)
+      }
+
+      const productList = document.getElementById('productList')
+      
+      if (!data || data.length === 0) {
+        productList.innerHTML = '<p style="text-align: center; color: #aaa;">No products yet</p>'
+        return
+      }
+
+      productList.innerHTML = data.map(p => `
+        <div class="item">
+          <span>
+            <strong>${escapeHtml(p.name)}</strong> - ₦${Number(p.price).toLocaleString()}
+          </span>
+          <button class="del-btn" onclick="deleteProduct(${p.id})">Delete</button>
+        </div>
+      `).join('')
+    } catch (error) {
+      console.error('Error loading products:', error)
+      document.getElementById('productList').innerHTML = `<p style="color: #F44336;">Error: ${error.message}</p>`
+    }
+  }
+
+  // Delete product
+  async function deleteProduct(id) {
+    if (!confirm('Delete this bag? This cannot be undone.')) return
+
+    try {
+      // Get product details first (to delete the image)
+      const { data: product, error: fetchError } = await supabase
+        .from('Products')
+        .select('image_url')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) throw new Error(`Failed to fetch product: ${fetchError.message}`)
+
+      // Delete from database
+      const { error: deleteError } = await supabase
+        .from('Products')
+        .delete()
+        .eq('id', id)
+
+      if (deleteError) throw new Error(`Failed to delete product: ${deleteError.message}`)
+
+      // Delete image from storage
+      if (product && product.image_url) {
+        try {
+          // Extract filename from Supabase URL
+          const url = new URL(product.image_url)
+          const pathParts = url.pathname.split('/')
+          const fileName = pathParts[pathParts.length - 1]
+          
+          await supabase.storage
+            .from('products')
+            .remove([fileName])
+        } catch (storageError) {
+          console.warn('Could not delete image file:', storageError)
+          // Don't fail if image deletion fails
+        }
+      }
+
+      showAlert('✓ Bag deleted successfully', 'success')
+      await loadProducts()
+
+    } catch (error) {
+      console.error('Delete error:', error)
+      showAlert(error.message, 'error')
+    }
+  }
+
+  // Prevent XSS
+  function escapeHtml(unsafe) {
+    const div = document.createElement('div')
+    div.textContent = unsafe
+    return div.innerHTML
+  }
+
+  // Load products on page load
+  loadProducts()
+</script>
+
+</body>
+</html>
