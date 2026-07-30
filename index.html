@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BagBox - Premium Bags for Every Style</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #FF6B9D;
+      --secondary: #00D4FF;
+      --accent: #FFD700;
+      --dark: #1A1A2E;
+      --light: #F8F9FA;
+      --success: #4CAF50;
+      --danger: #F44336;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--light);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    /* HEADER */
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      padding: 15px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin-left: 30px;
+      font-weight: 600;
+      transition: opacity 0.3s;
+    }
+
+    nav a:hover {
+      opacity: 0.8;
+    }
+
+    /* HERO SECTION */
+    .hero {
+      background: linear-gradient(135deg, #FF6B9D 0%, #FFB347 50%, #00D4FF 100%);
+      padding: 80px 5%;
+      text-align: center;
+      color: #fff;
+    }
+
+    .hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 3.5rem;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      animation: slideDown 0.8s ease;
+    }
+
+    .hero p {
+      font-size: 1.3rem;
+      margin-bottom: 30px;
+      opacity: 0.95;
+      animation: slideUp 0.8s ease;
+    }
+
+    .cta-btn {
+      background: #fff;
+      color: var(--primary);
+      padding: 15px 40px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.1rem;
+      display: inline-block;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+    }
+
+    /* CONTAINER */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 5%;
+    }
+
+    .section {
+      padding: 70px 5%;
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.8rem;
+      text-align: center;
+      margin-bottom: 50px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* FILTER SECTION */
+    .filter-section {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 40px;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-weight: 600;
+      color: var(--dark);
+      font-size: 1rem;
+    }
+
+    .filter-select {
+      padding: 12px 20px;
+      border: 2px solid var(--primary);
+      border-radius: 50px;
+      background: #fff;
+      color: var(--dark);
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 1rem;
+      min-width: 200px;
+    }
+
+    .filter-select:hover {
+      box-shadow: 0 4px 15px rgba(255, 107, 157, 0.2);
+      border-color: var(--secondary);
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--secondary);
+      box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+    }
+
+    /* PRODUCTS GRID */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      margin-bottom: 40px;
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    .product-card {
+      background: #fff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+      animation: popIn 0.5s ease;
+    }
+
+    @keyframes popIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .product-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 15px 40px rgba(255, 107, 157, 0.3);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .product-info {
+      padding: 20px;
+    }
+
+    .product-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--dark);
+    }
+
+    .product-category {
+      font-size: 0.9rem;
+      color: #777;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .product-price {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .product-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #FF6B9D, #FFB347);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    /* LOADING & EMPTY STATES */
+    .loading {
+      text-align: center;
+      padding: 80px 20px;
+      font-size: 1.3rem;
+      color: #999;
+      grid-column: 1/-1;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #ddd;
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: #999;
+      grid-column: 1/-1;
+    }
+
+    /* CONTACT SECTION */
+    .contact-section {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #fff;
+      text-align: center;
+      border-radius: 20px;
+      padding: 50px;
+      margin: 70px 5%;
+    }
+
+    .contact-section h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+
+    .contact-section p {
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      opacity: 0.95;
+    }
+
+    .contact-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .contact-btn {
+      background: #fff;
+      padding: 14px 30px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .contact-btn.whatsapp {
+      color: #25D366;
+    }
+
+    .contact-btn.email {
+      color: var(--primary);
+    }
+
+    .contact-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+
+    /* ADMIN LINK */
+    .admin-fab {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      text-decoration: none;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      transition: transform 0.3s;
+      z-index: 99;
+    }
+
+    .admin-fab:hover {
+      transform: scale(1.1) rotate(10deg);
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--dark);
+      color: #fff;
+      text-align: center;
+      padding: 30px 20px;
+      margin-top: 50px;
+    }
+
+    footer p {
+      opacity: 0.8;
+    }
+
+    /* ANIMATIONS */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.2rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      .section-title {
+        font-size: 2rem;
+      }
+
+      .products-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-section {
+        margin: 40px 5%;
+        padding: 30px;
+      }
+
+      nav a {
+        margin-left: 15px;
+        font-size: 0.9rem;
+      }
+
+      .filter-select {
+        min-width: 160px;
+        font-size: 0.9rem;
+      }
+
+      .filter-label {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎀 BagBox</div>
+  <nav>
+    <a href="#products">Shop</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <h1>Stunning Bags for Every Moment</h1>
+  <p>Handpicked luxury, style, and quality — all in one place</p>
+  <a href="#products" class="cta-btn">Shop Now</a>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-title" id="products">Our Collection</h2>
+    
+    <div class="filter-section">
+      <span class="filter-label">Filter by type:</span>
+      <select id="categoryFilter" class="filter-select">
+        <option value="">All Bags</option>
+        <option value="Totes">Totes</option>
+        <option value="Crossbody">Crossbody</option>
+        <option value="Clutches">Clutches</option>
+        <option value="Backpacks">Backpacks</option>
+        <option value="Shoulder">Shoulder</option>
+        <option value="Handbags">Handbags</option>
+      </select>
+    </div>
+
+    <div class="products-grid" id="productsGrid">
+      <div class="loading">Loading amazing bags...</div>
+    </div>
+  </div>
+</section>
+
+<section class="contact-section" id="contact">
+  <h2>Ready to Shop?</h2>
+  <p>Get in touch with us for inquiries, custom orders, or just to chat about bags!</p>
+  <div class="contact-buttons">
+    <a href="https://wa.me/2347012345678?text=Hi%20BagBox%21%20I%20want%20to%20know%20more%20about%20your%20bags" target="_blank" class="contact-btn whatsapp">
+      💬 WhatsApp
+    </a>
+    <a href="mailto:mum@bagbox.ng" class="contact-btn email">
+      📧 Email Us
+    </a>
+  </div>
+</section>
+
+<a href="/admin.html" class="admin-fab" title="Admin Panel">⚙️</a>
+
+<footer>
+  <p>&copy; 2026 BagBox. All rights reserved. Made with 💚 in Nigeria.</p>
+</footer>
+
+<script>
+  const SUPABASE_URL = 'https://acedquitkeerhzoaktku.supabase.co'
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZWRxdWl0a2Vlcmh6b2FrdGt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNDQwNTQsImV4cCI6MjEwMDkyMDA1NH0.BSH6QPFqdGyZc0WzG1vlU4P1pwdP7i-lzGYObuOPskk'
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+
+  let allProducts = [] // Store all products for filtering
+
+  async function loadProducts() {
+    try {
+      const { data, error } = await supabase
+        .from('Products')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Supabase error:', error)
+        document.getElementById('productsGrid').innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #F44336;">
+            <p>⚠️ Error loading products. Check console for details.</p>
+            <p style="font-size: 0.9rem; margin-top: 10px; opacity: 0.7;">Make sure the 'Products' table exists in Supabase.</p>
+          </div>
+        `
+        return
+      }
+
+      allProducts = data || []
+
+      if (!allProducts || allProducts.length === 0) {
+        document.getElementById('productsGrid').innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #999;">
+            <p style="font-size: 1.2rem;">No bags available yet!</p>
+            <p style="margin-top: 10px; opacity: 0.7;">Check back soon for new arrivals 🎀</p>
+          </div>
+        `
+        return
+      }
+
+      displayProducts(allProducts)
+
+    } catch (err) {
+      console.error('Error:', err)
+      document.getElementById('productsGrid').innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #F44336;">
+          Unexpected error loading products
+        </div>
+      `
+    }
+  }
+
+  function displayProducts(products) {
+    const grid = document.getElementById('productsGrid')
+
+    if (!products || products.length === 0) {
+      grid.innerHTML = `
+        <div class="no-results">
+          <p style="font-size: 1.1rem;">No bags found in this category 🔍</p>
+          <p style="margin-top: 10px; opacity: 0.7;">Try a different filter</p>
+        </div>
+      `
+      return
+    }
+
+    const html = products.map(product => `
+      <div class="product-card">
+        <img 
+          src="${product.image_url}" 
+          alt="${product.name}" 
+          class="product-image"
+          onerror="this.src='https://via.placeholder.com/300?text=Bag+Image'"
+        >
+        <div class="product-info">
+          <div class="product-name">${escapeHtml(product.name)}</div>
+          <div class="product-category">${escapeHtml(product.category)}</div>
+          <div class="product-price">₦${Number(product.price).toLocaleString()}</div>
+          ${product.badge ? `<div class="product-badge">${escapeHtml(product.badge)}</div>` : ''}
+        </div>
+      </div>
+    `).join('')
+
+    grid.innerHTML = html
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
+  }
+
+  // Filter functionality
+  document.getElementById('categoryFilter').addEventListener('change', (e) => {
+    const selectedCategory = e.target.value
+
+    if (selectedCategory === '') {
+      displayProducts(allProducts)
+    } else {
+      const filtered = allProducts.filter(product => product.category === selectedCategory)
+      displayProducts(filtered)
+    }
+  })
+
+  loadProducts()
+</script>
+
+</body>
+</html>
