@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial; background: #f0f0f0; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
+    input, select, button { padding: 10px; width: 100%; margin: 10px 0; font-size: 16px; box-sizing: border-box; }
+    button { background: #FF6B9D; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #e55a8c; }
+    .success { color: green; font-weight: bold; padding: 10px; background: #e8f5e9; }
+    .error { color: red; font-weight: bold; padding: 10px; background: #ffebee; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎀 Add Bag</h1>
+  
+  <div id="message"></div>
+
+  <form id="myForm">
+    <input type="text" id="name" placeholder="Bag Name" required>
+    <input type="number" id="price" placeholder="Price" required>
+    <select id="category" required>
+      <option value="">Select Category</option>
+      <option value="Totes">Totes</option>
+      <option value="Crossbody">Crossbody</option>
+      <option value="Clutches">Clutches</option>
+      <option value="Backpacks">Backpacks</option>
+    </select>
+    <input type="file" id="image" accept="image/*" required>
+    <button type="submit">Upload Bag</button>
+  </form>
+
+  <h2>Current Bags</h2>
+  <div id="bagsList"></div>
+</div>
+
+<script>
+  const client = window.supabase.createClient(
+    'https://acedquitkeerhzoaktku.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFjZWRxdWl0a2Vlcmh6b2FrdGt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzNDQwNTQsImV4cCI6MjEwMDkyMDA1NH0.BSH6QPFqdGyZc0WzG1vlU4P1pwdP7i-lzGYObuOPskk'
+  )
+
+  document.getElementById('myForm').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const msg = document.getElementById('message')
+    
+    try {
+      const name = document.getElementById('name').value
+      const price = document.getElementById('price').value
+      const category = document.getElementById('category').value
+      const file = document.getElementById('image').files[0]
+
+      console.log('Starting upload...')
+
+      // Upload image
+      const fileName = Date.now() + '-' + file.name
+      const { error: err1 } = await client.storage.from('products').upload(fileName, file)
+      if (err1) throw new Error('Upload error: ' + err1.message)
+
+      console.log('Image uploaded, getting URL...')
+
+      // Get URL
+      const { data: urlData } = client.storage.from('products').getPublicUrl(fileName)
+      console.log('URL: ' + urlData.publicUrl)
+
+      // Save to database
+      const { error: err2 } = await client.from('Products').insert([{
+        name: name,
+        price: parseInt(price),
+        category: category,
+        image_url: urlData.publicUrl
+      }])
+      if (err2) throw new Error('Database error: ' + err2.message)
+
+      msg.innerHTML = '<div class="success">✓ Bag added successfully!</div>'
+      document.getElementById('myForm').reset()
+      await loadBags()
+    } catch (err) {
+      console.error('Error:', err)
+      msg.innerHTML = '<div class="error">Error: ' + err.message + '</div>'
+    }
+  })
+
+  async function loadBags() {
+    try {
+      const { data, error } = await client.from('Products').select('*').order('created_at', { ascending: false })
+      if (error) throw error
+      
+      if (!data || data.length === 0) {
+        document.getElementById('bagsList').innerHTML = '<p>No bags yet</p>'
+        return
+      }
+
+      document.getElementById('bagsList').innerHTML = data.map(b => 
+        '<div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;"><strong>' + b.name + '</strong> - ₦' + Number(b.price).toLocaleString() + ' (' + b.category + ') <button onclick="deleteBag(' + b.id + ')" style="width: auto; background: #f44336; margin-top: 5px;">Delete</button></div>'
+      ).join('')
+    } catch (err) {
+      console.error('Load error:', err)
+    }
+  }
+
+  async function deleteBag(id) {
+    if (!confirm('Delete this bag?')) return
+    try {
+      await client.from('Products').delete().eq('id', id)
+      await loadBags()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+  }
+
+  loadBags()
+</script>
+
+</body>
+</html>
